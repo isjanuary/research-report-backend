@@ -23,7 +23,6 @@ func (rSvc *ReportService) InitReadStatusOfAllReports(rootPath string, ctx *gin.
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(rootFolder)
 
 	// step 2: 	后序遍历目录结构树计算文件数目/已读数目
 	//			输入目录树的根节点, 返回 list, list-item 应包含各目录节点信息, 以及所有子 pdf 数, 所有子 pdf 的已读/已阅数目
@@ -203,7 +202,7 @@ func genDirTreeByReport(rootPath string) (*MultiWayDirNode, error) {
 	return rootFolder, nil
 }
 
-func (rSvc *ReportService) InitReadStatusOfAllReportsV2(rootPath string, ctx *gin.Context) (error, interface{}) {
+func (rSvc *ReportService) InitReadStatusOfAllReportsV2(rootPath string, ctx *gin.Context) (interface{}, error) {
 	// 直接遍历 "C:\\Users\\Jiayi Xu\\Desktop\\研报", 并生成所有文件夹下 pdf 记数的结果。跳过目录结构树这步
 	return nil, nil
 }
