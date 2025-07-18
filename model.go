@@ -20,6 +20,7 @@ type GeneralizedReport struct {
 	PdfReadCnt int    `json:"pdfReadCnt"`
 	SelfPath   string `json:"selfPath"`
 	Level      int    `json:"level"`
+	ParentPath string `json:"parentPath"`
 }
 
 type DirVal struct {
