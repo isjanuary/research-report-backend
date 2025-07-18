@@ -44,12 +44,14 @@ func (rSvc *ReportService) InitReadStatusOfAllReports(rootPath string, ctx *gin.
 		FileCnt:    0,
 		PdfCnt:     0,
 		SelfPath:   parentPath,
+		ParentPath: "",
 		Level:      0,
 	}
 
 	for len(stack) > 0 {
 		stackTop = stack[len(stack)-1]
 		parentPath = stackTop.Val.Path
+
 		if len(stackTop.Children) == 0 || stackTop.Visited == len(stackTop.Children)-1 {
 			//	1. 	叶子节点场景
 			//	或
@@ -57,9 +59,25 @@ func (rSvc *ReportService) InitReadStatusOfAllReports(rootPath string, ctx *gin.
 			topEntry := stackTop.Val.Entry
 			if topEntry == nil {
 				// 根节点的情形, Entry == nil
+				// 此时要把所有子孙节点的文件计数加上来
+				report4Entry := reportMap[parentPath]
+				childrenEntries := stackTop.Children
+				fileCnt := 0
+				pdfCnt := 0
+				pdfReadCnt := 0
+				for _, childEntry := range childrenEntries {
+					currChildEntry := reportMap[childEntry.Val.Path]
+					fileCnt += currChildEntry.FileCnt
+					pdfCnt += currChildEntry.PdfCnt
+					pdfReadCnt += currChildEntry.PdfReadCnt
+				}
+				report4Entry.FileCnt = fileCnt
+				report4Entry.PdfCnt = pdfCnt
+				report4Entry.PdfReadCnt = pdfReadCnt
 				stack = stack[:len(stack)-1]
 				continue
 			}
+
 			topEntryName := topEntry.Name()
 			report4Entry := reportMap[parentPath]
 			if topEntry.Type().IsRegular() {
@@ -118,6 +136,7 @@ func (rSvc *ReportService) InitReadStatusOfAllReports(rootPath string, ctx *gin.
 			FileCnt:    0,
 			SelfPath:   currPath,
 			Level:      reportMap[parentPath].Level + 1,
+			ParentPath: parentPath,
 		}
 
 		stack = append(stack, nextChild)
