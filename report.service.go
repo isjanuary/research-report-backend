@@ -34,18 +34,19 @@ func (rSvc *ReportService) InitReadStatusOfAllReports(rootPath string, ctx *gin.
 	currPath := ""
 	reportMap := make(map[string]*GeneralizedReport, 0)
 	reportMap[parentPath] = &GeneralizedReport{
-		Name:       parentPath,
-		IsDir:      true,
-		IsFile:     false,
-		IsRead:     false,
-		Ext:        "",
-		IsPdf:      false,
-		PdfReadCnt: 0,
-		FileCnt:    0,
-		PdfCnt:     0,
-		SelfPath:   parentPath,
-		ParentPath: "",
-		Level:      0,
+		Name:                 parentPath,
+		IsDir:                true,
+		IsFile:               false,
+		IsRead:               false,
+		Ext:                  "",
+		IsPdf:                false,
+		PdfReadCnt:           0,
+		FileCnt:              0,
+		PdfCnt:               0,
+		SelfPath:             parentPath,
+		ParentPath:           "",
+		Level:                0,
+		HasIndustrialReports: false,
 	}
 
 	for len(stack) > 0 {
@@ -65,15 +66,20 @@ func (rSvc *ReportService) InitReadStatusOfAllReports(rootPath string, ctx *gin.
 				fileCnt := 0
 				pdfCnt := 0
 				pdfReadCnt := 0
+				hasIndustrialReports := report4Entry.HasIndustrialReports
 				for _, childEntry := range childrenEntries {
 					currChildEntry := reportMap[childEntry.Val.Path]
 					fileCnt += currChildEntry.FileCnt
 					pdfCnt += currChildEntry.PdfCnt
 					pdfReadCnt += currChildEntry.PdfReadCnt
+					if currChildEntry.HasIndustrialReports {
+						hasIndustrialReports = true
+					}
 				}
 				report4Entry.FileCnt = fileCnt
 				report4Entry.PdfCnt = pdfCnt
 				report4Entry.PdfReadCnt = pdfReadCnt
+				report4Entry.HasIndustrialReports = hasIndustrialReports
 				stack = stack[:len(stack)-1]
 				continue
 			}
@@ -97,15 +103,20 @@ func (rSvc *ReportService) InitReadStatusOfAllReports(rootPath string, ctx *gin.
 				fileCnt := 0
 				pdfCnt := 0
 				pdfReadCnt := 0
+				hasIndustrialReports := report4Entry.HasIndustrialReports
 				for _, childEntry := range childrenEntries {
 					currChildEntry := reportMap[childEntry.Val.Path]
 					fileCnt += currChildEntry.FileCnt
 					pdfCnt += currChildEntry.PdfCnt
 					pdfReadCnt += currChildEntry.PdfReadCnt
+					if currChildEntry.HasIndustrialReports {
+						hasIndustrialReports = true
+					}
 				}
 				report4Entry.FileCnt = fileCnt
 				report4Entry.PdfCnt = pdfCnt
 				report4Entry.PdfReadCnt = pdfReadCnt
+				report4Entry.HasIndustrialReports = hasIndustrialReports
 			} else {
 				fmt.Printf("either IsDir nor IsRegular, current entry type:  %s\n", topEntry.Type())
 			}
@@ -125,18 +136,19 @@ func (rSvc *ReportService) InitReadStatusOfAllReports(rootPath string, ctx *gin.
 		isFile := nextEntry.Type().IsRegular()
 
 		reportMap[currPath] = &GeneralizedReport{
-			Name:       entryName,
-			IsDir:      nextEntry.Type().IsDir(),
-			IsFile:     isFile,
-			IsRead:     false,
-			Ext:        entryExt,
-			IsPdf:      isFile && entryExt == ".pdf",
-			PdfCnt:     0,
-			PdfReadCnt: 0,
-			FileCnt:    0,
-			SelfPath:   currPath,
-			Level:      reportMap[parentPath].Level + 1,
-			ParentPath: parentPath,
+			Name:                 entryName,
+			IsDir:                nextEntry.Type().IsDir(),
+			IsFile:               isFile,
+			IsRead:               false,
+			Ext:                  entryExt,
+			IsPdf:                isFile && entryExt == ".pdf",
+			PdfCnt:               0,
+			PdfReadCnt:           0,
+			FileCnt:              0,
+			SelfPath:             currPath,
+			Level:                reportMap[parentPath].Level + 1,
+			ParentPath:           parentPath,
+			HasIndustrialReports: entryName == "行业研报",
 		}
 
 		stack = append(stack, nextChild)

@@ -9,18 +9,19 @@ type WrapperResp struct {
 }
 
 type GeneralizedReport struct {
-	Name       string `json:"name"`
-	IsDir      bool   `json:"isDir"`
-	IsFile     bool   `json:"isFile"`
-	IsRead     bool   `json:"isRead"`
-	Ext        string `json:"ext"`
-	IsPdf      bool   `json:"isPdf"`
-	FileCnt    int    `json:"fileCnt"`
-	PdfCnt     int    `json:"pdfCnt"`
-	PdfReadCnt int    `json:"pdfReadCnt"`
-	SelfPath   string `json:"selfPath"`
-	Level      int    `json:"level"`
-	ParentPath string `json:"parentPath"`
+	Name                 string `json:"name"`
+	IsDir                bool   `json:"isDir"`
+	IsFile               bool   `json:"isFile"`
+	IsRead               bool   `json:"isRead"`
+	Ext                  string `json:"ext"`
+	IsPdf                bool   `json:"isPdf"`
+	FileCnt              int    `json:"fileCnt"`
+	PdfCnt               int    `json:"pdfCnt"`
+	PdfReadCnt           int    `json:"pdfReadCnt"`
+	SelfPath             string `json:"selfPath"`
+	HasIndustrialReports bool   `json:"hasIndustrialReports"`
+	Level                int    `json:"level"`
+	ParentPath           string `json:"parentPath"`
 }
 
 type DirVal struct {
