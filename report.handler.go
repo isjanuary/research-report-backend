@@ -24,16 +24,16 @@ func NewReportHanlder() *ReportHandler {
 func (hdl *ReportHandler) RegisterRoutes(s *gin.Engine) {
 	reportG := s.Group("/report")
 	reportG.GET("/initall", hdl.InitReadStatusOfAllReports)
-	reportG.GET("/initall/v2", hdl.InitReadStatusOfAllReportsV2)
+	reportG.GET("/initall/v1", hdl.InitReadStatusOfAllReportsV1)
 	reportG.GET("/viewdir", hdl.ViewDirAndFilesByPath)
 	reportG.GET("/testlogic", hdl.TestLogic)
 }
 
-func (hdl *ReportHandler) InitReadStatusOfAllReports(ctx *gin.Context) {
+func (hdl *ReportHandler) InitReadStatusOfAllReportsV1(ctx *gin.Context) {
 	var resp WrapperResp
 	// rootPath := "C:\\"
 	rootPath := "C:\\Users\\Jiayi Xu\\Desktop\\研报"
-	reportsList, err := hdl.ReportSvc.InitReadStatusOfAllReports(rootPath, ctx)
+	reportsList, err := hdl.ReportSvc.InitReadStatusOfAllReportsV1(rootPath, ctx)
 	if err != nil {
 		resp = WrapperResp{
 			Data: nil,
@@ -56,16 +56,25 @@ func (hdl *ReportHandler) InitReadStatusOfAllReports(ctx *gin.Context) {
 	ctx.JSON(200, resp)
 }
 
-func (hdl *ReportHandler) InitReadStatusOfAllReportsV2(ctx *gin.Context) {
+func (hdl *ReportHandler) InitReadStatusOfAllReports(ctx *gin.Context) {
 	rootPath := "C:\\Users\\Jiayi Xu\\Desktop\\研报"
-	_, err := hdl.ReportSvc.InitReadStatusOfAllReportsV2(rootPath, ctx)
+	var resp WrapperResp
+	resReportList, err := hdl.ReportSvc.InitReadStatusOfAllReports(rootPath, ctx)
 	if err != nil {
-		// TODO:	remove this line
-		fmt.Println(err)
+		resp = WrapperResp{
+			Data: nil,
+			Msg:  fmt.Sprintf("%+v", err),
+			Code: 1,
+		}
+		ctx.JSON(400, resp)
 		return
 	}
-	resp := WrapperResp{
-		Data: struct{}{},
+	resp = WrapperResp{
+		Data: struct {
+			Reports []*GeneralizedReport `json:"reports"`
+		}{
+			Reports: resReportList,
+		},
 		Code: 0,
 		Msg:  "Reset read status of all reports succeeds !",
 	}

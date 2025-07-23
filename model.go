@@ -29,8 +29,15 @@ type DirVal struct {
 	Entry os.DirEntry
 }
 
-type MultiWayDirNode struct {
+type MultiWayDirNodeV1 struct {
 	Val      *DirVal
-	Children []*MultiWayDirNode
+	Children []*MultiWayDirNodeV1
 	Visited  int
+}
+
+type MultiWayDirNode struct {
+	Val        *DirVal
+	Children   []*MultiWayDirNode
+	Visited    int
+	ParentPath string
 }
