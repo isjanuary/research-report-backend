@@ -17,9 +17,9 @@ func NewReportService() *ReportService {
 	return &ReportService{}
 }
 
-func (rSvc *ReportService) InitReadStatusOfAllReports(rootPath string, ctx *gin.Context) ([]*GeneralizedReport, error) {
+func (rSvc *ReportService) InitReadStatusOfAllReportsV1(rootPath string, ctx *gin.Context) ([]*GeneralizedReport, error) {
 	// step 1: 	遍历 rootPath 构建目录结构树
-	rootFolder, err := genDirTreeByReport(rootPath)
+	rootFolder, err := genDirTreeBySys(rootPath)
 	if err != nil {
 		return nil, err
 	}
@@ -27,8 +27,8 @@ func (rSvc *ReportService) InitReadStatusOfAllReports(rootPath string, ctx *gin.
 	// step 2: 	后序遍历目录结构树计算文件数目/已读数目
 	//			输入目录树的根节点, 返回 list, list-item 应包含各目录节点信息, 以及所有子 pdf 数, 所有子 pdf 的已读/已阅数目
 	//			前端需要的字段有:	1. key - pathname 	2. childrenKeys		3. readPdfs		4. totalPdfs
-	stack := []*MultiWayDirNode{rootFolder}
-	var stackTop *MultiWayDirNode
+	stack := []*MultiWayDirNodeV1{rootFolder}
+	var stackTop *MultiWayDirNodeV1
 
 	parentPath := rootPath
 	currPath := ""
@@ -163,7 +163,7 @@ func (rSvc *ReportService) InitReadStatusOfAllReports(rootPath string, ctx *gin.
 	return resReportList, nil
 }
 
-func genDirTreeByReport(rootPath string) (*MultiWayDirNode, error) {
+func genDirTreeBySys(rootPath string) (*MultiWayDirNodeV1, error) {
 	defaultRoot := "C:\\Users\\Jiayi Xu\\Desktop\\研报"
 	if rootPath == "" {
 		rootPath = defaultRoot
@@ -173,10 +173,10 @@ func genDirTreeByReport(rootPath string) (*MultiWayDirNode, error) {
 	if err != nil {
 		return nil, err
 	}
-	rootChildren := []*MultiWayDirNode{}
+	rootChildren := []*MultiWayDirNodeV1{}
 	for _, rEntry := range rootEntries {
-		rootChildren = append(rootChildren, &MultiWayDirNode{
-			Children: []*MultiWayDirNode{},
+		rootChildren = append(rootChildren, &MultiWayDirNodeV1{
+			Children: []*MultiWayDirNodeV1{},
 			Visited:  -1,
 			Val: &DirVal{
 				Entry: rEntry,
@@ -184,7 +184,7 @@ func genDirTreeByReport(rootPath string) (*MultiWayDirNode, error) {
 			},
 		})
 	}
-	rootFolder := &MultiWayDirNode{
+	rootFolder := &MultiWayDirNodeV1{
 		Children: rootChildren,
 		Visited:  -1,
 		Val: &DirVal{
@@ -194,7 +194,7 @@ func genDirTreeByReport(rootPath string) (*MultiWayDirNode, error) {
 	}
 
 	// 通过广度优先搜索, 构建以 rootFolder 为根节点的完整目录树结构
-	q := []*MultiWayDirNode{rootFolder}
+	q := []*MultiWayDirNodeV1{rootFolder}
 	for len(q) > 0 {
 		curr := q[0]
 		for _, currChild := range curr.Children {
@@ -205,10 +205,10 @@ func genDirTreeByReport(rootPath string) (*MultiWayDirNode, error) {
 				if err != nil {
 					return nil, err
 				}
-				lv2Children := []*MultiWayDirNode{}
+				lv2Children := []*MultiWayDirNodeV1{}
 				for _, lv2Entry := range lv2Entries {
-					lv2Children = append(lv2Children, &MultiWayDirNode{
-						Children: []*MultiWayDirNode{},
+					lv2Children = append(lv2Children, &MultiWayDirNodeV1{
+						Children: []*MultiWayDirNodeV1{},
 						Visited:  -1,
 						Val: &DirVal{
 							Path:  fmt.Sprintf("%s\\%s", childPath, lv2Entry.Name()),
@@ -217,7 +217,7 @@ func genDirTreeByReport(rootPath string) (*MultiWayDirNode, error) {
 					})
 				}
 				currChild.Children = lv2Children
-				q = append(q, &MultiWayDirNode{
+				q = append(q, &MultiWayDirNodeV1{
 					Children: lv2Children,
 					Visited:  -1,
 					Val: &DirVal{
@@ -233,7 +233,151 @@ func genDirTreeByReport(rootPath string) (*MultiWayDirNode, error) {
 	return rootFolder, nil
 }
 
-func (rSvc *ReportService) InitReadStatusOfAllReportsV2(rootPath string, ctx *gin.Context) (interface{}, error) {
-	// 直接遍历 "C:\\Users\\Jiayi Xu\\Desktop\\研报", 并生成所有文件夹下 pdf 记数的结果。跳过目录结构树这步
-	return nil, nil
+func (rSvc *ReportService) InitReadStatusOfAllReports(rootPath string, ctx *gin.Context) ([]*GeneralizedReport, error) {
+	// 直接遍历 "C:\\Users\\Jiayi Xu\\Desktop\\研报", 并生成所有文件夹下 pdf 记数的结果。跳过生成目录结构树这步
+	defaultRoot := "C:\\Users\\Jiayi Xu\\Desktop\\研报"
+	if rootPath == "" {
+		rootPath = defaultRoot
+	}
+
+	rootFolder := &MultiWayDirNode{
+		Children:   []*MultiWayDirNode{},
+		Visited:    -1,
+		ParentPath: "",
+		Val: &DirVal{
+			Entry: nil,
+			Path:  rootPath,
+		},
+	}
+
+	stack := []*MultiWayDirNode{rootFolder}
+	var stackTop *MultiWayDirNode
+	currLvPath := rootPath
+	reportMap := make(map[string]*GeneralizedReport, 0)
+	reportMap[currLvPath] = &GeneralizedReport{
+		Name:                 currLvPath,
+		IsDir:                true,
+		IsFile:               false,
+		IsRead:               false,
+		Ext:                  "",
+		IsPdf:                false,
+		PdfReadCnt:           0,
+		FileCnt:              0,
+		PdfCnt:               0,
+		SelfPath:             currLvPath,
+		ParentPath:           "",
+		Level:                0,
+		HasIndustrialReports: false,
+	}
+
+	for len(stack) > 0 {
+		stackTop = stack[len(stack)-1]
+		topEntry := stackTop.Val.Entry
+		lv2Children := []*MultiWayDirNode{}
+		currLvPath = stackTop.Val.Path
+		// step 1:	如果该节点未访问过, 则读取其所有子文件夹, 并放入 children
+		if stackTop.Visited == -1 {
+			// os.ReadDir 要求所搜索的路径必须是目录, 否则会抛出错误
+			if topEntry == nil || topEntry.IsDir() {
+				lv2Entries, err := os.ReadDir(currLvPath)
+				if err != nil {
+					return nil, err
+				}
+				for _, lv2Entry := range lv2Entries {
+					lv2Children = append(lv2Children, &MultiWayDirNode{
+						Children:   []*MultiWayDirNode{},
+						Visited:    -1,
+						ParentPath: currLvPath,
+						Val: &DirVal{
+							Entry: lv2Entry,
+							Path:  fmt.Sprintf("%s\\%s", currLvPath, lv2Entry.Name()),
+						},
+					})
+				}
+				stackTop.Children = lv2Children
+			}
+		}
+
+		// step 2:	加总所有子节点状态
+		if len(stackTop.Children) == 0 || stackTop.Visited == len(stackTop.Children)-1 {
+			// 1. 	如果是 叶子节点, 则更新其 pdf 阅读状态
+			// 或
+			// 2. 	所有子节点均已处理, 则加总其所有子节点的 pdf 阅读状态及是否"行业研报"状态
+			report4Entry := reportMap[currLvPath]
+			if topEntry == nil || topEntry.Type().IsDir() {
+				// case 1: 	topEntry == nil 即 topEntry 是根节点的场景
+				// case 2:  topEntry.Type().IsDir() 即当前 entry 是目录的场景
+				childrenEntries := stackTop.Children
+				fileCnt := 0
+				pdfCnt := 0
+				pdfReadCnt := 0
+				hasIndustrialReports := report4Entry.HasIndustrialReports
+				for _, childEntry := range childrenEntries {
+					currChildReport := reportMap[childEntry.Val.Path]
+					fileCnt += currChildReport.FileCnt
+					pdfCnt += currChildReport.PdfCnt
+					pdfReadCnt += currChildReport.PdfReadCnt
+					if currChildReport.HasIndustrialReports {
+						hasIndustrialReports = true
+					}
+				}
+				report4Entry.FileCnt = fileCnt
+				report4Entry.PdfCnt = pdfCnt
+				report4Entry.PdfReadCnt = pdfReadCnt
+				report4Entry.HasIndustrialReports = hasIndustrialReports
+			} else if topEntry.Type().IsRegular() {
+				// case 3: 	topEntry 是文件的场景
+				report4Entry.FileCnt = 1
+				// case 4: 	而且 topEntry 是 pdf 文件
+				topEntryName := topEntry.Name()
+				if path.Ext(topEntryName) == ".pdf" {
+					report4Entry.PdfCnt = 1
+					if strings.Contains(topEntryName, "已读") || strings.Contains(topEntryName, "已阅") {
+						report4Entry.IsRead = true
+						report4Entry.PdfReadCnt = 1
+					}
+				}
+			} else {
+				fmt.Printf("either IsDir nor IsRegular, current entry type:  %s\n", topEntry.Type())
+			}
+
+			// 出栈
+			stack = stack[:len(stack)-1]
+			continue
+		}
+
+		//	step 3:	获取下一个入栈的节点, 并构造 GeneralizedReport, 作为结果集的一部分
+		stackTop.Visited++
+		nextChild := stackTop.Children[stackTop.Visited]
+		nextEntry := nextChild.Val.Entry
+		nextEntryName := nextEntry.Name()
+		nextEntryExt := path.Ext(nextEntryName)
+		nextPath := fmt.Sprintf("%s\\%s", currLvPath, nextEntryName)
+		isFile := nextEntry.Type().IsRegular()
+
+		reportMap[nextPath] = &GeneralizedReport{
+			Name:                 nextEntryName,
+			IsDir:                nextEntry.Type().IsDir(),
+			IsFile:               isFile,
+			IsRead:               false,
+			Ext:                  nextEntryExt,
+			IsPdf:                isFile && nextEntryExt == ".pdf",
+			PdfCnt:               0,
+			PdfReadCnt:           0,
+			FileCnt:              0,
+			SelfPath:             nextPath,
+			Level:                reportMap[currLvPath].Level + 1,
+			ParentPath:           currLvPath,
+			HasIndustrialReports: nextEntryName == "行业研报",
+		}
+
+		stack = append(stack, nextChild)
+	}
+
+	// map 转化为数组作为结果集返回
+	resReportList := []*GeneralizedReport{}
+	for _, r := range reportMap {
+		resReportList = append(resReportList, r)
+	}
+	return resReportList, nil
 }
