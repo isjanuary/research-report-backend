@@ -16,6 +16,6 @@ func main() {
 }
 
 func initRoutes(s *gin.Engine) {
-	reportHdls := NewReportHanlder()
+	reportHdls := NewReportHandler()
 	reportHdls.RegisterRoutes(s)
 }

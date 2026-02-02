@@ -15,7 +15,7 @@ type ReportHandler struct {
 
 // const defaultDir = "C:\\Users\\Jiayi Xu\\Desktop\\重要文件\\研报"
 
-func NewReportHanlder() *ReportHandler {
+func NewReportHandler() *ReportHandler {
 	return &ReportHandler{
 		ReportSvc: NewReportService(),
 	}
